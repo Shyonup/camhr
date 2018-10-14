@@ -28,6 +28,8 @@ import we.web.Result;
 @RequestMapping("/${version:v1.0.0}/users/twitters")
 public class TwitterController {
 
+  //old注释一下
+
   @Autowired
   private TwitterService twitterService;
 
