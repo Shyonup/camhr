@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.job.mapper.JobStatisticsMapper">
+
+  <select id="getEmployerJobStatusStatistics"
+    resultType="com.camhr.job.entity.statistics.JobStatusStatistics">
+    SELECT
+      ( <include refid="countEmployerOnlineJobs"/> ) AS "online",
+      ( <include refid="countEmployerOfflineJobs"/> ) AS "offline",
+      ( <include refid="countEmployerDraftJobs"/> ) AS "draft"
+    FROM DUAL
+  </select>
+
+  <!-- 统计公司已上线的职位 -->
+  <sql id="countEmployerOnlineJobs">
+    SELECT COUNT(1) FROM E_JOB
+    WHERE employer_id = #{employerId}
+    AND status = ${@com.camhr.job.constants.JobStatus@PUBLISHED.value()}
+    AND close_date <![CDATA[ >= ]]> #{now}
+    AND expdate <![CDATA[ >= ]]> #{now}
+    <include refid="jobNotRemovedFilter"/>
+  </sql>
+
+  <!-- 统计公司下线的职位 -->
+  <sql id="countEmployerOfflineJobs">
+    SELECT COUNT(1) FROM E_JOB
+    WHERE employer_id = #{employerId}
+    AND ispublish = 1 <!-- 1表示ture，ture表示曾经发布过 -->
+    AND (close_date <![CDATA[ < ]]> #{now}
+        OR expdate <![CDATA[ < ]]> #{now})
+    <include refid="jobNotRemovedFilter"/>
+  </sql>
+
+  <!-- 统计公司草稿状态的职位 -->
+  <sql id="countEmployerDraftJobs">
+    SELECT COUNT(1) FROM E_JOB
+    WHERE employer_id = #{employerId}
+    AND status = ${@com.camhr.job.constants.JobStatus@DRAFT.value()}
+    <include refid="jobNotRemovedFilter"/>
+  </sql>
+
+  <sql id="jobNotRemovedFilter">
+    <![CDATA[ AND status <> ${@com.camhr.job.constants.JobStatus@REMOVED.value()}  ]]>
+  </sql>
+
+</mapper>

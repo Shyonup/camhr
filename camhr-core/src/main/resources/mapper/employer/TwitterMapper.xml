@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.user.twitter.mapper.TwitterMapper">
+
+  <insert id="addTwitter">
+    <selectKey resultType="java.lang.Integer" order="BEFORE" keyProperty="id" keyColumn="ID">
+      SELECT SEQ_U_TWITTER.nextval AS ID FROM DUAL
+    </selectKey>
+    INSERT INTO U_TWITTER(id, USER_ID, CONTENT, IMAGES, ANONYMOUS, LIKES, COMMENTS)
+    VALUES(#{id},#{userId},#{content} ,
+    #{images, typeHandler=com.camhr.employer.mapper.handler.ListToStringHandler},
+    #{anonymous}, #{likes}, #{comments})
+  </insert>
+
+  <update id="removeTwitter">
+    UPDATE U_TWITTER SET
+    status = ${@com.camhr.user.twitter.constants.TwitterStatus@DELETED.value()}
+    WHERE id = #{twitterId} AND user_id = #{userId}
+  </update>
+
+  <update id="updateTwitter">
+    UPDATE U_TWITTER
+    SET content = #{content},
+    images = #{images, typeHandler=com.camhr.employer.mapper.handler.ListToStringHandler},
+    anonymous = #{anonymous},
+    update_at = #{updateAt}
+    WHERE id = #{id} AND user_id = #{userId}
+  </update>
+
+  <select id="queryTwitterList" resultMap="twitterMapper">
+    <include refid="pageQueryHeader"/>
+    SELECT twitter.*, seeker.NAME as userName,
+    seeker.avatar
+    FROM U_TWITTER twitter
+    LEFT JOIN U_SEEKER seeker ON twitter.user_id = seeker.id
+    WHERE twitter.status = ${@com.camhr.user.twitter.constants.TwitterStatus@NORMAL.value()}
+    ORDER BY create_at DESC
+    <include refid="pageQueryFooter"/>
+  </select>
+
+  <select id="countTwitterList" resultType="java.lang.Long">
+    SELECT
+    COUNT(1)
+    FROM U_TWITTER twitter
+    LEFT JOIN U_SEEKER seeker ON twitter.user_id = seeker.id
+  </select>
+
+  <insert id="likeTwitter">
+    INSERT INTO U_TWITTER_LIKE(twitter_id,user_id) values (#{twitterId},#{userId})
+  </insert>
+
+  <delete id="dislikeTwitter">
+    DELETE FROM U_TWITTER_LIKE
+    WHERE twitter_id = #{twitterId} AND user_id = #{userId}
+  </delete>
+
+  <update id="addTwitterLikes">
+    UPDATE  U_TWITTER SET likes = likes + 1 WHERE id = #{twitterId}
+  </update>
+
+  <update id="minusTwitterLikes">
+    UPDATE  U_TWITTER SET likes = likes - 1 WHERE id = #{twitterId}
+  </update>
+
+  <update id="addTwitterComments">
+    UPDATE  U_TWITTER SET comments = comments + 1 WHERE id = #{twitterId}
+  </update>
+
+  <update id="minusTwitterComments">
+    UPDATE  U_TWITTER SET comments = comments - 1 WHERE id = #{twitterId}
+  </update>
+
+  <sql id="pageQueryHeader">
+    SELECT * FROM ( SELECT A.*, ROWNUM RN FROM (
+  </sql>
+
+  <sql id="pageQueryFooter">
+    <![CDATA[
+     ) A WHERE ROWNUM <= (#{offset} + #{limit}) ) WHERE RN >  #{offset}
+    ]]>
+  </sql>
+
+  <resultMap id="twitterMapper" type="com.camhr.user.twitter.entity.Twitter">
+    <result column="IMAGES" property="images"
+      typeHandler="com.camhr.employer.mapper.handler.ListToStringHandler"/>
+  </resultMap>
+</mapper>

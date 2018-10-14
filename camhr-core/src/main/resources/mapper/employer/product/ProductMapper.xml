@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.employer.product.mapper.ProductMapper">
+
+  <select id="findProducts" resultType="com.camhr.employer.product.entity.Product">
+    SELECT
+      t_service.name_${language.value()} AS "name",
+      t_service.description_${language.value()} AS "description",
+      t_service.*
+    FROM P_SERVICE t_service
+    WHERE 1 = 1
+    <include refid="productFindBuilder"/>
+  </select>
+
+  <select id="findProductItemsByProductIds" resultType="com.camhr.employer.product.entity.ProductItem">
+    SELECT * FROM P_SERVICE_ITEM
+    WHERE SERVICE_ID IN
+    <foreach collection="productIds" item="item" index="index" open="(" separator="," close=")">
+      #{item}
+    </foreach>
+  </select>
+
+
+
+  <select id="getProduct" resultType="com.camhr.employer.product.entity.Product">
+    SELECT * FROM P_SERVICE WHERE ID = #{productId}
+  </select>
+
+  <sql id="productFindBuilder">
+    <if test="!groupIds.isEmpty()">
+      AND t_service.GROUP_ID IN
+      <foreach collection="groupIds" item="item" index="index" open="(" separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+    <if test="!status.isEmpty()">
+      AND t_service.status IN
+      <foreach collection="status" item="item" index="index" open="(" separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+  </sql>
+
+  <sql id="pageQueryHeader">
+    SELECT * FROM ( SELECT A.*, ROWNUM RN FROM (
+  </sql>
+
+  <sql id="pageQueryFooter">
+    <![CDATA[ ) A WHERE ROWNUM <= (#{offset} + #{limit}) ) WHERE RN >  #{offset} ]]>
+  </sql>
+
+</mapper>

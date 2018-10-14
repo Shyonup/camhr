@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.user.mapper.SeekerMapper">
+  <insert id="addSeeker">
+    <selectKey resultType="java.lang.Integer" order="BEFORE" keyProperty="seekerId"
+      keyColumn="ID">
+      SELECT SEQ_U_SEEKER.nextval AS ID from DUAL
+    </selectKey>
+    insert into u_seeker(id,name,password,email,language,mobile,region_code)
+    values(#{seekerId},#{name},#{password},#{email},#{language},#{mobile},#{regionCode})
+  </insert>
+
+  <update id="updateSeeker">
+    UPDATE U_SEEKER
+    SET
+      firstname   = #{firstName},
+      lastname    = #{lastName},
+      sex_id       = #{sexId},
+      location_id = #{locationId},
+      mobile      = #{mobile},
+      birthday    = #{birthday},
+      WORK_BEGIN_DATE = #{workBeginDate},
+      address     = #{address},
+      EMAIL = #{email}
+    WHERE id = #{seekerId}
+  </update>
+
+  <select id="getSeekerById" resultMap="seekerMapper">
+    SELECT *
+    FROM U_SEEKER
+    WHERE id = #{seekerId}
+  </select>
+
+  <update id="updateWorkStatus">
+    UPDATE U_SEEKER
+    SET WORK_STATUS_ID = #{workStatus}
+    WHERE id = #{seekerId}
+  </update>
+  <update id="setDefaultLanguage">
+    UPDATE U_SEEKER
+    SET LANGUAGE = #{language}
+    WHERE id = #{seekerId}
+  </update>
+
+  <select id="getUserPassportByName" resultMap="passportMapper">
+    SELECT
+      ID AS USER_ID,
+      PASSWORD,
+      NAME,
+      LANGUAGE,
+      AVATAR,
+      STATUS,
+      FIRSTNAME,
+      LASTNAME
+    FROM U_SEEKER
+    WHERE NAME = #{username} or concat(region_code,mobile) = #{mobile}
+  </select>
+  <select id="existUsername" resultType="java.lang.Boolean">
+    select case when count(1)>0 then 1 else 0 end from U_SEEKER where name = #{username}
+  </select>
+  <select id="existEmail" resultType="java.lang.Boolean">
+    select case when count(1)>0 then 1 else 0 end from U_SEEKER where name = #{email}
+  </select>
+  <select id="existMobile" resultType="java.lang.Boolean">
+    select case when count(1)>0 then 1 else 0 end from U_SEEKER
+    where mobile = #{mobile} and region_code = #{regionCode}
+  </select>
+
+  <update id="updatePassword">
+    UPDATE U_SEEKER SET PASSWORD = #{newPassword}
+    WHERE ID = #{seekerId} AND PASSWORD = #{oldPassword}
+  </update>
+
+  <update id="updatePasswordByPhone">
+    UPDATE U_SEEKER SET PASSWORD = #{password}
+    WHERE mobile = #{phone} AND REGION_CODE = #{region}
+  </update>
+
+  <update id="updatePasswordByEmail">
+    UPDATE U_SEEKER SET PASSWORD = #{password}
+    WHERE email = #{email}
+  </update>
+
+  <resultMap id="passportMapper" type="we.security.passport.Passport">
+    <result column="LANGUAGE" property="attributes.language"/>
+    <result column="AVATAR" property="attributes.avatar"/>
+    <result column="FIRSTNAME" property="attributes.firstName"/>
+    <result column="LASTNAME" property="attributes.lastName"/>
+  </resultMap>
+  <resultMap id="seekerMapper" type="com.camhr.resume.entity.Seeker">
+    <result column="id" property="seekerId"/>
+  </resultMap>
+</mapper>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.user.mapper.LanguageLevelMapper">
+
+  <delete id="deleteLanguageLevel">
+    delete from u_cv_lang where id = #{id}
+  </delete>
+
+  <insert id="addLanguageLevel" useGeneratedKeys="false">
+    <selectKey resultType="java.lang.Integer" order="BEFORE" keyProperty="id" keyColumn="ID">
+      SELECT SEQ_U_CV_LANG.nextval AS ID from DUAL
+    </selectKey>
+    insert into U_CV_LANG(ID,CV_ID,language_id,language_level_id)
+    values (#{id},#{resumeId},#{languageId},#{languageLevelId})
+  </insert>
+
+  <update id="updateLanguageLevel">
+    update U_CV_LANG
+    set language_id = #{languageId},
+    language_level_id = #{languageLevelId}
+    where id = #{id}
+  </update>
+
+  <select id="getLanguageLevelsByResumeId" parameterType="java.lang.Long"
+    resultMap="languageMapper">
+    select * from U_CV_LANG where CV_ID = #{resumeId}
+  </select>
+
+  <resultMap id="languageMapper" type="com.camhr.resume.entity.LanguageLevel">
+    <result column="CV_ID" property="resumeId"/>
+  </resultMap>
+</mapper>

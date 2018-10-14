@@ -1,0 +1,490 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.job.mapper.JobMapper">
+
+  <insert id="addJob">
+    <selectKey resultType="java.lang.Long" order="BEFORE" keyProperty="id">
+      SELECT SEQ_E_JOB.nextval AS ID from DUAL
+    </selectKey>
+    INSERT INTO E_JOB (
+      id,
+      language,
+      pubdate,
+      expdate,
+      close_date,
+      contact_id,
+      title,
+      hirelings,
+      industrial_id,
+      category_id,
+      term_id,
+      job_level_id,
+      salary_id,
+      workyears,
+      qualification_id,
+      others_qualification,
+      major,
+      sex,
+      matrial,
+      age_from,
+      age_to,
+      address,
+      weburl,
+      show_email,
+      online_apply,
+      requirement,
+      updatetime,
+      createdate,
+      employer_id,
+      status,
+      description
+    ) VALUES (
+      #{id},
+      #{language, jdbcType=VARCHAR},
+      #{pubdate, jdbcType=DATE},
+      #{expdate, jdbcType=DATE},
+      #{closeDate, jdbcType=DATE},
+      #{contactId, jdbcType=NUMERIC},
+      #{title, jdbcType=VARCHAR},
+      #{hirelings, jdbcType=NUMERIC},
+      #{industrialId, jdbcType=NUMERIC},
+      #{categoryId, jdbcType=NUMERIC},
+      #{termId, jdbcType=NUMERIC},
+      #{jobLevelId, jdbcType=NUMERIC},
+      #{salaryId, jdbcType=NUMERIC},
+      #{workyears, jdbcType=NUMERIC},
+      #{qualificationId, jdbcType=NUMERIC},
+      #{othersQualification, jdbcType=VARCHAR},
+      #{major, jdbcType=VARCHAR},
+      #{sex, jdbcType=NUMERIC},
+      #{matrial, jdbcType=NUMERIC},
+      #{ageFrom, jdbcType=NUMERIC},
+      #{ageTo, jdbcType=NUMERIC},
+      #{address, jdbcType=VARCHAR},
+      #{weburl, jdbcType=VARCHAR},
+      #{showEmail, jdbcType=VARCHAR},
+      #{onlineApply, jdbcType=VARCHAR},
+      #{requirement, jdbcType=VARCHAR},
+      #{updatetime, jdbcType=DATE},
+      #{createdate, jdbcType=DATE},
+      #{employerId, jdbcType=NUMERIC},
+      #{status, jdbcType=NUMERIC},
+      #{description, jdbcType=LONGVARBINARY}
+    )
+  </insert>
+
+  <insert id="addJobLocations" useGeneratedKeys="false">
+    INSERT INTO E_JOB_LOCATION (id, job_id, location_id, address)
+    SELECT SEQ_E_JOB_LOCATION.nextval, A.* FROM (
+    <foreach collection="locations" item="item" index="index" separator="UNION ALL">
+      SELECT
+      #{item.jobId, jdbcType=NUMERIC},
+      #{item.locationId, jdbcType=NUMERIC},
+      #{item.address, jdbcType=VARCHAR}
+      FROM DUAL
+    </foreach> ) A
+  </insert>
+
+  <update id="publishJob">
+    UPDATE E_JOB
+    SET
+      status = #{status},
+      ispublish = #{ispublish},
+      isurgent = #{isurgent},
+      pubdate = #{pubdate},
+      pubtype = #{pubtype},
+      expdate = #{expdate},
+      close_date = #{closeDate},
+      updatetime = #{updatetime}
+    WHERE id = #{id}
+    AND employer_id = #{employerId}
+  </update>
+
+  <update id="removeJob">
+    UPDATE E_JOB
+    SET status = ${@com.camhr.job.constants.JobStatus@REMOVED.value().intValue()}
+    WHERE id = #{jobId}
+    AND employer_id = #{employerId}
+  </update>
+
+  <update id="closeJob">
+    UPDATE E_JOB
+    SET
+      status = ${@com.camhr.job.constants.JobStatus@CLOSED.value().intValue()},
+      close_date = #{closeDate, jdbcType=DATE}
+    WHERE id = #{id}
+    AND employer_id = #{employerId}
+  </update>
+
+  <update id="updateJob">
+    UPDATE E_JOB
+    SET
+      language = #{language, jdbcType=VARCHAR},
+      <!-- 下面三个都是与发布相关的，不应该出现在普通的update接口。因为旧代码有，所以这里没直接删除 -->
+      <!-- pubdate = #{pubdate, jdbcType=DATE}, -->
+      <!-- expdate = #{expdate, jdbcType=DATE}, -->
+      <!-- close_date = #{closeDate, jdbcType=DATE}, -->
+      contact_id = #{contactId, jdbcType=NUMERIC},
+      title = #{title, jdbcType=VARCHAR},
+      hirelings = #{hirelings, jdbcType=NUMERIC},
+      industrial_id = #{industrialId, jdbcType=NUMERIC},
+      category_id = #{categoryId, jdbcType=NUMERIC},
+      term_id = #{termId, jdbcType=NUMERIC},
+      job_level_id = #{jobLevelId, jdbcType=NUMERIC},
+      salary_id = #{salaryId, jdbcType=NUMERIC},
+      workyears = #{workyears, jdbcType=NUMERIC},
+      qualification_id = #{qualificationId, jdbcType=NUMERIC},
+      others_qualification = #{othersQualification, jdbcType=VARCHAR},
+      major = #{major, jdbcType=VARCHAR},
+      sex = #{sex, jdbcType=NUMERIC},
+      matrial = #{matrial, jdbcType=NUMERIC},
+      age_from = #{ageFrom, jdbcType=NUMERIC},
+      age_to = #{ageTo, jdbcType=NUMERIC},
+      address = #{address, jdbcType=VARCHAR},
+      weburl = #{weburl, jdbcType=VARCHAR},
+      show_email = #{showEmail, jdbcType=VARCHAR},
+      online_apply = #{onlineApply, jdbcType=VARCHAR},
+      requirement = #{requirement, jdbcType=VARCHAR},
+      description = #{description, jdbcType=LONGVARBINARY},
+      updatetime = #{updatetime, jdbcType=DATE}
+    WHERE id = #{id}
+    AND employer_id = #{employerId}
+  </update>
+
+  <update id="refreshStatisticOfApplyingJob">
+    UPDATE E_JOB
+    SET
+      new_apply = (
+        SELECT COUNT(1)
+        FROM U_JOB_APPLY
+        WHERE job_id = #{jobId}
+        AND status = ${@com.camhr.job.constants.JobApplyStatus@APPLIED.value()}
+        <include refid="jobApplyNotDeleteFilter"/>
+      ),
+      total_apply = (
+        SELECT COUNT(1)
+        FROM U_JOB_APPLY
+        WHERE job_id = #{jobId}
+        <include refid="jobApplyNotDeleteFilter"/>
+      ),
+      search_apply = (
+        SELECT COUNT(1)
+        FROM U_JOB_APPLY
+        WHERE job_id = #{jobId}
+        AND apply_type = ${@com.camhr.job.constants.JobApplyType@EMPLOYER_FIND.value()}
+        <include refid="jobApplyNotDeleteFilter"/>
+      )
+    WHERE id = #{jobId}
+  </update>
+
+  <update id="updateJobAutoRenewStatus">
+    UPDATE E_JOB
+    SET AUTO_RENEW = #{isAutoRenew}
+    WHERE ID = #{jobId}
+    AND EMPLOYER_ID = #{employerId}
+  </update>
+
+  <update id="closeExpiredJobs">
+    UPDATE E_JOB
+    SET
+      status = ${@com.camhr.job.constants.JobStatus@CLOSED.value().intValue()},
+      close_date = #{nowDate}
+    <![CDATA[ WHERE expdate < #{nowDate} ]]>
+    AND status = ${@com.camhr.job.constants.JobStatus@PUBLISHED.value().intValue()}
+  </update>
+
+  <update id="topJob">
+    UPDATE E_JOB
+    SET
+      TOP_SERVICE_EXP_DATE = #{topServiceExpiredDate},
+      IS_TOP = 1 <!-- 布尔值，1表示true -->
+    WHERE ID = #{jobId}
+    AND employer_id = #{employerId}
+  </update>
+
+  <update id="downTheTopJobsWhichIsExpired">
+    UPDATE E_JOB
+    SET IS_TOP = 0 <!-- 布尔值，0表示False -->
+    <![CDATA[ WHERE TOP_SERVICE_EXP_DATE <= #{nowDate} ]]>
+    AND IS_TOP = 1 <!-- 布尔值，1表示False -->
+  </update>
+
+  <sql id="jobApplyNotDeleteFilter">
+    <!-- 0表示boolean的false -->
+    AND userdelete = 0
+    AND employerdelete = 0
+  </sql>
+
+  <delete id="deleteJob">
+    DELETE FROM E_JOB
+    WHERE id = #{jobId}
+    AND employer_id = #{employerId}
+  </delete>
+
+  <delete id="deleteJobLocations">
+    DELETE FROM E_JOB_LOCATION WHERE job_id = #{jobId}
+  </delete>
+
+  <delete id="deleteJobLanguage">
+    DELETE FROM E_JOB_LANG WHERE job_id = #{jobId}
+  </delete>
+
+  <select id="getJob" resultMap="JobMapper">
+    SELECT
+      <include refid="job_all_columns"/>
+    FROM E_JOB
+    WHERE id = #{jobId}
+  </select>
+
+  <select id="queryJobs" resultMap="JobMapper">
+    <include refid="pageQueryHeader"/>
+    SELECT
+      <include refid="job_all_columns"/>
+    FROM E_JOB
+    WHERE 1 = 1
+    <include refid="jobQueryBuilder"/>
+    ORDER BY is_top DESC, isurgent DESC, updatetime DESC
+    <include refid="pageQueryFooter"/>
+  </select>
+
+  <select id="countJobs" resultType="java.lang.Long">
+    SELECT COUNT(1) FROM E_JOB WHERE 1 = 1
+    <include refid="jobQueryBuilder"/>
+  </select>
+
+  <select id="getJobStatusByEmployerId" resultType="java.lang.Integer">
+    SELECT status FROM E_JOB
+    WHERE id = #{jobId}
+    AND employer_id = #{employerId}
+  </select>
+
+  <select id="findJobLocations" resultType="com.camhr.job.entity.JobLocation">
+    SELECT * FROM E_JOB_LOCATION
+    WHERE JOB_ID IN
+    <foreach collection="jobIds" item="item" open="(" separator="," close=")" index="index">
+      #{item}
+    </foreach>
+  </select>
+
+  <select id="findJobsWhichNeedToAutoRenew" resultType="com.camhr.job.entity.PublishJob">
+    SELECT
+      E_JOB.ID AS "jobId",
+      E_JOB.EMPLOYER_ID AS "employerId", (
+        <!-- 下面这句SQL表示：查找最后一次发布职位时，使用的服务包ID -->
+        <include refid="header_selectEmployerProductItemIdWhenLastPublishJob"/>
+        AND OBJECTID = E_JOB.ID
+        <include refid="footer_selectEmployerProductItemIdWhenLastPublishJob"/>
+      ) AS "employerProductItemId"
+    FROM E_JOB
+    WHERE 1 = 1
+    <include refid="jobQueryBuilder"/>
+    AND AUTO_RENEW = 1 <!-- 布尔值，oracle中1表示true -->
+  </select>
+
+  <select id="getEmployerProductItemIdWhenLastPublishJob" resultType="java.lang.Long">
+    <include refid="header_selectEmployerProductItemIdWhenLastPublishJob"/>
+    AND OBJECTID = #{jobId}
+    <include refid="footer_selectEmployerProductItemIdWhenLastPublishJob"/>
+  </select>
+
+  <!--
+    查找最后一次发布职位时，使用的服务包ID
+    因为<SQL>标签没法想Java方法那样，传参数进来，所以下面把一句SQL拆开成两部分: hearder 和 footer
+   -->
+  <sql id="header_selectEmployerProductItemIdWhenLastPublishJob">
+    SELECT
+      (CASE WHEN SERVICE_ITEM_ID IS NULL THEN 0 ELSE SERVICE_ITEM_ID END) AS "employerProductItemId"
+    FROM E_SERVICE_ITEM_TR
+    WHERE ID = (
+      SELECT
+        (CASE WHEN MAX(ID) IS NULL THEN 0 ELSE MAX(ID) END) AS "employerProductItemId"
+      FROM E_SERVICE_ITEM_TR
+      WHERE ITEM_ID IN ( ${@com.camhr.constants.ServiceItem@itemIdsAboutPublishJobForSQL()} )
+  </sql>
+
+  <sql id="footer_selectEmployerProductItemIdWhenLastPublishJob">
+    )
+  </sql>
+
+  <!-- description是Long类型，一定要放最后，不然mybatis会报错 -->
+  <sql id="job_all_columns">
+    id,
+    status,
+    ispublish,
+    pubdate,
+    expdate,
+    employer_id,
+    contact_id,
+    title,
+    hirelings,
+    industrial_id,
+    category_id,
+    term_id,
+    job_level_id,
+    salary_id,
+    workyears,
+    qualification_id,
+    others_qualification,
+    major,
+    sex,
+    matrial,
+    age_from,
+    age_to,
+    address,
+    weburl,
+    requirement,
+    isurgent,
+    updatetime,
+    createdate,
+    new_apply,
+    total_apply,
+    search_apply,
+    seeker_hits,
+    language,
+    sysclose,
+    hot_expdate,
+    close_date,
+    pubtype,
+    online_apply,
+    show_email,
+    auto_renew,
+    is_top,
+    top_service_exp_date,
+    description
+  </sql>
+
+  <sql id="jobQueryBuilder">
+    <!-- 企业账号必须处于可用状态 -->
+    AND EXISTS (
+      SELECT 1 FROM E_EMPLOYER
+      WHERE E_EMPLOYER.id = E_JOB.employer_id
+      AND E_EMPLOYER.status = ${@com.camhr.employer.constants.EmployerStatus@OK.value()}
+    )
+    <if test="employerId > -1">
+      AND employer_id = #{employerId}
+    </if>
+    <if test="workYearMin > -1">
+      <![CDATA[ AND WORKYEARS >= #{workYearMin} ]]>
+    </if>
+    <if test="workYearMax > -1">
+      <![CDATA[ AND WORKYEARS <= #{workYearMax} ]]>
+    </if>
+    <if test="salaryId > -1">
+      AND SALARY_ID = #{salaryId}
+    </if>
+    <if test="language != null">
+      AND language = #{language}
+    </if>
+    <if test="!status.isEmpty()">
+      AND status IN
+      <foreach collection="status" item="item" index="index" open="(" separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+    <if test="!industrialIds.isEmpty()">
+      AND INDUSTRIAL_ID IN
+      <foreach collection="industrialIds" item="item" index="index" open="(" separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+    <if test="!categoryIds.isEmpty()">
+      AND CATEGORY_ID IN
+      <foreach collection="categoryIds" item="item" index="index" open="(" separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+    <if test="!qualificationIds.isEmpty()">
+      AND QUALIFICATION_ID IN
+      <foreach collection="qualificationIds" item="item" index="index" open="(" separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+    <if test="!employerScaleIds.isEmpty()">
+      AND EXISTS (
+        SELECT 1 FROM E_EMPLOYER
+        WHERE E_JOB.EMPLOYER_ID = E_EMPLOYER.ID
+        AND E_EMPLOYER.SCALE_ID IN
+        <foreach collection="employerScaleIds" item="item" index="index" open="(" separator="," close=")">
+          #{item}
+        </foreach>
+      )
+    </if>
+    <if test="locationId > 0">
+      AND EXISTS (
+        SELECT 1 FROM E_JOB_LOCATION
+        WHERE E_JOB_LOCATION.job_id = E_JOB.id
+        AND location_id = #{locationId}
+      )
+    </if>
+    <if test="published != null">
+      AND ispublish = #{published}
+    </if>
+    <if test="urgent != null">
+      AND isurgent = #{urgent}
+    </if>
+    <!-- 是否沟通过 -->
+    <if test="hasCommunicated != null">
+      <if test="hasCommunicated">
+        AND EXISTS (
+          SELECT 1 FROM U_JOB_COMMUNICATED
+          WHERE U_JOB_COMMUNICATED.JOB_ID = E_JOB.id
+          AND U_JOB_COMMUNICATED.SEEKER_ID = #{seekerId}
+        )
+      </if>
+    </if>
+    <if test="closed != null">
+      <choose>
+        <when test="closed"> <![CDATA[ AND close_date < #{now} ]]> </when>
+        <otherwise> <![CDATA[ AND close_date >= #{now} ]]> </otherwise>
+      </choose>
+    </if>
+    <if test="expired != null">
+      <choose>
+        <when test="expired"> <![CDATA[ AND expdate < #{now} ]]> </when>
+        <otherwise> <![CDATA[ AND expdate >= #{now} ]]> </otherwise>
+      </choose>
+    </if>
+    <if test="closedOrExpired != null">
+      <choose>
+        <when test="closedOrExpired"><![CDATA[ AND (close_date < #{now} OR expdate < #{now}) ]]></when>
+        <otherwise><![CDATA[ AND (close_date >= #{now} OR expdate >= #{now}) ]]></otherwise>
+      </choose>
+    </if>
+    <if test="jobTitle != null">
+      AND LOWER(title) LIKE '%'||#{jobTitle}||'%'
+    </if>
+    <if test="company != null">
+      AND EXISTS (
+        SELECT 1 FROM E_EMPLOYER
+        WHERE E_EMPLOYER.id = E_JOB.employer_id
+        AND LOWER(E_EMPLOYER.company) LIKE '%'||#{company}||'%'
+      )
+    </if>
+    <if test="jobTitleOrCompany != null">
+      AND (
+        <!-- jobTitle -->
+        (LOWER(title) LIKE '%'||#{jobTitleOrCompany}||'%')
+        OR
+        <!-- company -->
+        (EXISTS (
+          SELECT 1 FROM E_EMPLOYER
+          WHERE E_EMPLOYER.id = E_JOB.employer_id
+          AND LOWER(E_EMPLOYER.company) LIKE '%'||#{jobTitleOrCompany}||'%'
+        ))
+      )
+    </if>
+  </sql>
+
+  <sql id="pageQueryHeader">
+    SELECT * FROM ( SELECT A.*, ROWNUM RN FROM (
+  </sql>
+
+  <sql id="pageQueryFooter">
+    <![CDATA[ ) A WHERE ROWNUM <= (#{offset} + #{limit}) ) WHERE RN >  #{offset} ]]>
+  </sql>
+
+  <resultMap id="JobMapper" type="com.camhr.job.entity.Job">
+    <result column="description" property="description" jdbcType="LONGVARBINARY"/>
+  </resultMap>
+</mapper>

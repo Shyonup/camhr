@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.employer.product.mapper.EmployerProductMapper">
+
+  <!--
+    1. 注意批量插入 useGeneratedKeys="false" 必须有
+    2. SEQ_P_BILLNO.nextval表示随机生成订单编号，并赋值到P_BILLNO字段，相当于idWorker生成的id
+   -->
+  <insert id="addEmployerProductItems" useGeneratedKeys="false">
+    INSERT INTO E_SERVICE_ITEM (
+      ID,
+      EMPLOYER_ID,
+      P_SERVICE_ID,
+      ITEM_ID,
+      AMOUNT,
+      EXPDATE,
+      DISPLAY,
+      P_BILLNO
+    ) SELECT SEQ_E_SERVICE_ITEM.nextval, A.* FROM (
+    <foreach collection="employerProductItemList" item="item" index="index" separator="UNION ALL">
+      SELECT
+      #{item.employerId},
+      #{item.pServiceId},
+      #{item.itemId},
+      #{item.amount},
+      #{item.expdate},
+      #{item.display},
+      #{item.pBillno}
+      FROM DUAL
+    </foreach> ) A
+  </insert>
+
+  <insert id="addEmployerProductItemTR">
+    INSERT INTO E_SERVICE_ITEM_TR(
+      ID,
+      employer_id,
+      objectid,
+      service_item_id,
+      item_id,
+      amount,
+      balance,
+      start_date,
+      cdate,
+      end_date
+    ) VALUES(
+      SEQ_E_SERVICE_ITEM_TR.NEXTVAL,
+      #{employerId},
+      #{objectid},
+      #{serviceItemId},
+      #{itemId},
+      #{amount},
+      #{balance},
+      #{startDate},
+      #{cdate},
+      #{endDate}
+    )
+  </insert>
+
+  <update id="useProductItem">
+    UPDATE E_SERVICE_ITEM
+    SET amount = amount - #{amount}
+    WHERE id = #{employerProductItemId}
+    AND status = ${@com.camhr.employer.product.constants.EmployerProductItemStatus@OK.value()}
+  </update>
+
+  <select id="generateBillNumber" resultType="java.lang.Long">
+    SELECT SEQ_P_BILLNO.nextval FROM DUAL
+  </select>
+  
+  <select id="getEmployerProductItem"
+    resultType="com.camhr.employer.product.entity.EmployerProductItem">
+     SELECT * FROM E_SERVICE_ITEM WHERE ID = #{employerProductItemId}
+  </select>
+
+  <select id="queryEmployerProductItems"
+    resultType="com.camhr.employer.product.entity.EmployerProductItem">
+    <include refid="queryEmployerServiceItems"/>
+  </select>
+
+  <sql id="queryEmployerServiceItems">
+    <include refid="pageQueryHeader"/>
+    SELECT
+      <include refid="queryEmployerServiceItemsFields"/>
+    FROM E_SERVICE_ITEM t_service_item
+      <include refid="queryEmployerServiceItemsJoinOnTables"/>
+    WHERE 1 = 1
+    <include refid="productItemQueryBuilder"/>
+    ORDER BY t_service_item.expdate
+    <include refid="pageQueryFooter"/>
+  </sql>
+
+  <!-- 查询 E_SERVICE_ITEM 这张表的数据时，需要返回哪些字段 -->
+  <sql id="queryEmployerServiceItemsFields">
+    t_product.NAME_${language.value()} AS "productName",
+    t_item.NAME_${language.value()} AS "itemName",
+    t_product.DESCRIPTION_${language.value()} AS "productDescription",
+    t_product.PRICE AS "productPrice",(
+      <!--
+        t_service_item.AMOUNT 表示购买的总数，
+        tmp_item.AMOUNT 表示最基本的购买数量
+        t_service_item.AMOUNT / tmp_item.AMOUNT 表示购买服务包时，用户在UI界面输入的数字
+       -->
+      SELECT (t_service_item.AMOUNT / tmp_item.AMOUNT)
+      FROM P_SERVICE_ITEM tmp_item
+      WHERE tmp_item.SERVICE_ID = t_service_item.P_SERVICE_ID
+      AND tmp_item.ITEM_ID = t_service_item.ITEM_ID
+    ) AS "productAmount",
+    t_service_item.*
+  </sql>
+
+  <!-- 查询 E_SERVICE_ITEM 这张表的数据时，需要连接哪些表进行查询 -->
+  <sql id="queryEmployerServiceItemsJoinOnTables">
+    LEFT JOIN P_SERVICE t_product ON t_product.ID = t_service_item.P_SERVICE_ID
+    LEFT JOIN B_ITEM t_item ON t_item.ID = t_service_item.ITEM_ID
+  </sql>
+
+  <sql id="productItemQueryBuilder">
+    AND t_service_item.employer_id = #{employerId}
+    <if test="!status.isEmpty()">
+      AND t_service_item.status IN
+      <foreach collection="status" item="item" index="index" open="(" separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+    <if test="!itemIds.isEmpty()">
+      AND t_service_item.item_id IN
+      <foreach collection="itemIds" item="item" index="index" open="(" separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+    <if test="minAmount != null">
+      <![CDATA[ AND t_service_item.amount > #{minAmount} ]]>
+    </if>
+    <if test="mustNotExpired">
+      <![CDATA[ AND t_service_item.expdate >= trunc (sysdate) ]]>
+    </if>
+    <if test="isQueryEmployerProduct">
+      AND t_service_item.ID IN (SELECT MAX(tmp.ID) FROM E_SERVICE_ITEM tmp GROUP BY tmp.P_BILLNO)
+    </if>
+  </sql>
+
+  <select id="countEmployerProductItems" resultType="java.lang.Long">
+    <include refid="countEmployerServiceItems"/>
+  </select>
+
+  <sql id="countEmployerServiceItems">
+    SELECT COUNT(1)
+    FROM E_SERVICE_ITEM t_service_item
+    <include refid="queryEmployerServiceItemsJoinOnTables"/>
+    WHERE 1 = 1
+    <include refid="productItemQueryBuilder"/>
+  </sql>
+
+  <select id="queryProducts" resultType="com.camhr.employer.product.entity.EmployerProduct">
+    <include refid="queryEmployerServiceItems"/>
+  </select>
+
+  <select id="countProducts" resultType="java.lang.Long">
+    <include refid="countEmployerServiceItems"/>
+  </select>
+
+  <select id="findEmployerProductItemsByBillNos"
+    resultType="com.camhr.employer.product.entity.EmployerProductItem">
+    SELECT
+      <include refid="queryEmployerServiceItemsFields"/>
+    FROM E_SERVICE_ITEM t_service_item
+      <include refid="queryEmployerServiceItemsJoinOnTables"/>
+    WHERE t_service_item.P_BILLNO IN
+    <foreach collection="billNos" item="item" index="index" open="(" separator="," close=")">
+      #{item}
+    </foreach>
+  </select>
+
+  <sql id="pageQueryHeader">
+    SELECT * FROM ( SELECT A.*, ROWNUM RN FROM (
+  </sql>
+
+  <sql id="pageQueryFooter">
+    <![CDATA[ ) A WHERE ROWNUM <= (#{offset} + #{limit}) ) WHERE RN >  #{offset} ]]>
+  </sql>
+
+</mapper>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.employer.mapper.EmployerResumeMapper">
+
+  <select id="queryResumeInfoList" resultType="com.camhr.employer.entity.ResumeInfo">
+    <include refid="pageQueryHeader"/>
+    SELECT
+    <include refid="resumeInfoFields"/>
+    FROM U_CV t_cv
+    <include refid="queryResumeJoinOnTable"/>
+    WHERE job.employer_id = #{employerId}
+    <include refid="resumeQueryBuilder"/>
+    <include refid="pageQueryFooter"/>
+  </select>
+
+  <select id="countResumeInfoList" resultType="java.lang.Long">
+    SELECT
+    COUNT(1)
+    FROM U_CV t_cv
+    <include refid="queryResumeJoinOnTable"/>
+    WHERE job.employer_id = #{employerId}
+    <include refid="resumeQueryBuilder"/>
+  </select>
+
+  <update id="addEemployerHits">
+    UPDATE U_CV SET employer_hits = CASE WHEN employer_hits IS NULL THEN 1 ELSE employer_hits + 1 END
+    WHERE id= #{resumeId}
+  </update>
+
+  <sql id="queryResumeJoinOnTable">
+    LEFT JOIN U_CV_REQ_CATEGORY category on t_cv.id = category.cv_id
+    LEFT JOIN E_JOB job on category.category_id = job.category_id
+    LEFT JOIN U_SEEKER seeker on t_cv.seeker_id = seeker.id
+    LEFT JOIN U_JOB_APPLY apply on t_cv.id = apply.cv_id
+    <if test="expectLocationId > 0">
+      LEFT JOIN U_CV_REQ_LOCATION location on t_cv.id = location.cv_id
+    </if>
+  </sql>
+  <sql id="resumeQueryBuilder">
+    <if test="fromExperienceYear != null">
+      and t_cv.career_experience >= #{fromExperienceYear}
+    </if>
+    <if test="qualificationId > 0">
+      <![CDATA[ AND t_cv.qualification_id >= #{qualificationId}  ]]>
+    </if>
+    <if test="fromExperienceYear != null">
+      and t_cv.career_experience >= #{fromExperienceYear}
+    </if>
+    <if test="expectLocationId > 0">
+      and location.location_id = #{expectLocationId}
+    </if>
+    <if test="fromBirthday != null">
+      <![CDATA[ AND  seeker.birthday >= #{fromBirthday} ]]>
+    </if>
+    <if test="toBirthday != null">
+      <![CDATA[ AND seeker.birthday <= #{toBirthday}  ]]>
+    </if>
+    <if test="sexId > 0">
+      AND seeker.sex_id = #{sexId}
+    </if>
+    <if test="liveLocationId > 0">
+      and seeker.location_id = #{liveLocationId}
+    </if>
+    <if test="jobTitle != null and jobTitle != ''">
+      AND LOWER(job.title) LIKE '%' || #{jobTitle} || '%'
+    </if>
+    <if test="jobApplyCreateDate != null">
+      and apply.applydate >= #{jobApplyCreateDate}
+    </if>
+    <if test="userDelete != null">
+      AND apply.userdelete = #{userDelete}
+    </if>
+    <if test="employerDelete != null">
+      AND apply.employerdelete = #{employerDelete}
+    </if>
+  </sql>
+  <sql id="resumeInfoFields">
+    t_cv.id AS resumeId,
+    t_cv.seeker_id AS seekerId,
+    seeker.birthday AS birthday,
+    seeker.location_id AS locationId,
+    seeker.avatar AS avatar,
+    seeker.firstname AS firstName,
+    seeker.lastname AS lastName,
+    seeker.sex_id AS sexId,
+    t_cv.career_experience AS careerExperience,
+    t_cv.qualification_id AS qualificationId,
+    t_cv.req_salary_id AS salaryId,
+    job.term_id AS termId
+  </sql>
+
+  <sql id="pageQueryHeader">
+    SELECT * FROM ( SELECT A.*, ROWNUM RN FROM (
+  </sql>
+
+  <sql id="pageQueryFooter">
+    <![CDATA[
+     ) A WHERE ROWNUM <= (#{offset} + #{limit}) ) WHERE RN >  #{offset}
+    ]]>
+  </sql>
+
+</mapper>

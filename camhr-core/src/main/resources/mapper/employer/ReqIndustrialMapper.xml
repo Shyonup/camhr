@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.user.mapper.ReqIndustrialMapper">
+
+  <insert id="addIndustrial" useGeneratedKeys="false">
+    insert into U_CV_REQ_INDUSTRIAL(ID,CV_ID,INDUSTRIAL_ID)
+    SELECT SEQ_U_CV_REQ_INDUSTRIAL.nextval, A.* FROM (
+    <foreach collection="industryIds" item="item" index="index" separator="UNION ALL">
+      SELECT
+      #{item.resumeId, jdbcType=NUMERIC},
+      #{item.industryId, jdbcType=NUMERIC}
+      FROM DUAL
+    </foreach>
+    ) A
+  </insert>
+
+  <delete id="deleteIndustrialByResumeId">
+    delete from U_CV_REQ_INDUSTRIAL where CV_ID = #{resumeId}
+  </delete>
+
+  <select id="getReqIndustrial" parameterType="java.lang.Long" resultType="java.lang.Integer">
+    select INDUSTRIAL_ID from U_CV_REQ_INDUSTRIAL where CV_ID = #{resumeId}
+  </select>
+
+  <resultMap id="industrialMapper" type="com.camhr.resume.entity.ReqIndustrial">
+    <result column="id" property="id"/>
+    <result column="cv_id" property="resumeId"/>
+    <result column="industrial_id" property="industryId"/>
+  </resultMap>
+</mapper>

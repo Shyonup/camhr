@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.user.mapper.ReqCategoryMapper">
+
+  <insert id="addCategory" useGeneratedKeys="false">
+    insert into U_CV_REQ_CATEGORY(ID,CV_ID,CATEGORY_ID)
+    SELECT SEQ_U_CV_REQ_CATEGORY.nextval, A.* FROM (
+    <foreach collection="reqCategories" item="item" index="index" separator="UNION ALL">
+      SELECT
+      #{item.resumeId, jdbcType=NUMERIC},
+      #{item.categoryId, jdbcType=NUMERIC}
+      FROM DUAL
+    </foreach>
+    ) A
+  </insert>
+
+  <delete id="deleteCategoryByResumeId">
+    delete from U_CV_REQ_CATEGORY where CV_ID = #{resumeId}
+  </delete>
+
+  <select id="getReqCategoryIdsByResumeId" parameterType="java.lang.Long"
+    resultType="java.lang.Integer">
+    select CATEGORY_ID from U_CV_REQ_CATEGORY where CV_ID = #{resumeId}
+  </select>
+</mapper>

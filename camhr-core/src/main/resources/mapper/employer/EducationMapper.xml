@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.user.mapper.EducationMapper">
+
+  <insert id="addEducation">
+    <selectKey resultType="java.lang.Integer" order="BEFORE" keyProperty="eduId" keyColumn="ID">
+      SELECT SEQ_U_CV_EDU.nextval AS ID from DUAL
+    </selectKey>
+    insert into U_CV_EDU(id, cv_id, fromdate, todate, name, major, qualification_id,description)
+    values(#{eduId},#{resumeId},#{fromDate} , #{toDate}, #{name}, #{major},
+    #{qualificationId},#{description, jdbcType=LONGVARBINARY})
+  </insert>
+
+  <update id="updateEducation">
+    update U_CV_EDU set
+    name = #{name},
+    major = #{major},
+    qualification_id = #{qualificationId},
+    fromdate = #{fromDate},
+    todate = #{toDate}
+    where id = #{eduId}
+  </update>
+
+  <delete id="deleteEducation">
+    delete from U_CV_EDU  where id = #{eduId}
+  </delete>
+
+  <select id="getEducationsByResumeId" parameterType="java.lang.Long"
+    resultMap="educationMapper">
+    select
+    <include refid="education_all_columns"/>
+    from U_CV_EDU where CV_ID = #{resumeId}
+  </select>
+
+  <sql id="education_all_columns">
+    id,cv_id,fromdate, todate, name, major, qualification_id,description
+  </sql>
+
+  <resultMap id="educationMapper" type="com.camhr.resume.entity.Education">
+    <result column="id" property="eduId"/>
+    <result column="cv_id" property="resumeId"/>
+    <result column="description" property="description" jdbcType="LONGVARBINARY"/>
+  </resultMap>
+</mapper>

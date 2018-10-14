@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.user.mapper.ExperienceMapper">
+
+  <insert id="addExperience">
+    <selectKey resultType="java.lang.Integer" order="BEFORE" keyProperty="experienceId"
+      keyColumn="ID">
+      SELECT SEQ_U_CV_EDU.nextval AS ID from DUAL
+    </selectKey>
+    insert into U_CV_WORKEXP(id, cv_id, fromdate, todate, company, title, description)
+    values(#{experienceId},#{resumeId}, #{fromDate}, #{toDate}, #{company}, #{title},
+    #{description})
+  </insert>
+
+  <update id="updateExperience">
+    update U_CV_WORKEXP set
+    company = #{company},
+    title = #{title},
+    description = #{description},
+    fromdate = #{fromDate},
+    todate = #{toDate}
+    where id = #{experienceId}
+  </update>
+
+  <delete id="deleteExperience">
+    delete from U_CV_WORKEXP  where id = #{experienceId}
+  </delete>
+
+  <select id="getExperiencesByResumeId" parameterType="java.lang.Long"
+    resultMap="experienceMapper">
+    select
+    <include refid="education_all_columns"/>
+    from U_CV_WORKEXP where CV_ID = #{resumeId}
+  </select>
+
+  <sql id="education_all_columns">
+    id,cv_id,fromdate, todate, title, company,description
+  </sql>
+
+  <resultMap id="experienceMapper" type="com.camhr.resume.entity.Experience">
+    <result column="id" property="experienceId"/>
+    <result column="cv_id" property="resumeId"/>
+    <result column="description" property="description" jdbcType="LONGVARBINARY"/>
+  </resultMap>
+</mapper>

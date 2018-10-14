@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.employer.mapper.EmployerMapper">
+  <insert id="addEmployer">
+    insert into e_employer(id,language,name,password,company,contact_id,location_id,region_code,mobile,email)
+     values(#{employerId},#{language},#{name},#{password},#{company},#{contactId},#{locationId},#{regionCode},#{mobile},#{email})
+  </insert>
+  
+
+  <select id="getEmployer" resultMap="employerMapper">
+    SELECT * FROM E_EMPLOYER WHERE id = #{employerId}
+  </select>
+
+  <update id="updateEmployerInfo">
+    update E_EMPLOYER
+    set
+    COMPANY = #{company},
+    LOGO = #{logo, jdbcType=VARCHAR},
+    DESCRIPTION = #{description},
+    INDUSTRIAL_ID = #{industrialId},
+    SCALE_ID = #{scaleId},
+    WEBURL = #{webUrl},
+    ADDRESS = #{address},
+    TYPE_ID = #{companyType},
+    IMAGES = #{images, typeHandler=com.camhr.employer.mapper.handler.ListToStringHandler},
+    WELFARE = #{welfare, typeHandler=com.camhr.employer.mapper.handler.ListToStringHandler}
+    where id = #{employerId}
+  </update>
+  <update id="setDefaultLanguage">
+    UPDATE E_EMPLOYER
+    SET LANGUAGE = #{language}
+    WHERE id = #{employerId}
+  </update>
+
+  <resultMap id="employerMapper" type="com.camhr.employer.entity.Employer">
+    <result column="id" property="employerId"/>
+    <result column="TYPE_ID" property="companyType"/>
+    <result column="INDUSTRIAL_ID" property="industrialId"/>
+    <result column="IMAGES" property="images"
+      typeHandler="com.camhr.employer.mapper.handler.ListToStringHandler"/>
+    <result column="WELFARE" property="welfare"
+      typeHandler="com.camhr.employer.mapper.handler.ListToStringHandler"/>
+  </resultMap>
+
+  <select id="getEmployerPassportByName"  resultMap="employerPassportMapper">
+    SELECT
+      ID AS USER_ID,
+      PASSWORD,
+      NAME,
+      LOGO,
+      LANGUAGE,
+      STATUS,
+      COMPANY
+    FROM E_EMPLOYER
+    WHERE NAME = #{name}
+  </select>
+
+  <select id="getNextSequence" resultType="java.lang.Integer">
+    SELECT SEQ_E_EMPLOYER.nextval AS ID from DUAL
+  </select>
+  <select id="existUsername" resultType="java.lang.Boolean">
+    select case when count(1)>0 then 1 else 0 end from E_EMPLOYER where name = #{username}
+  </select>
+  <select id="existMobile" resultType="java.lang.Boolean">
+    select case when count(1)>0 then 1 else 0 end from E_EMPLOYER
+    where mobile = #{mobile} and region_code = #{regionCode}
+  </select>
+  <select id="existEmail" resultType="java.lang.Boolean">
+    select case when count(1)>0 then 1 else 0 end from E_EMPLOYER where email = #{email}
+  </select>
+
+  <select id="isFeature" resultType="java.lang.Boolean">
+    SELECT count(*)
+    FROM e_employer
+    WHERE id = #{employerId}
+    AND feature_to >= trunc(sysdate)
+  </select>
+
+  <update id="updatePassword">
+    UPDATE E_EMPLOYER SET PASSWORD = #{newPassword}
+    WHERE ID = #{employerId} AND PASSWORD = #{oldPassword}
+  </update>
+
+  <update id="updatePasswordByPhone">
+    UPDATE E_EMPLOYER SET PASSWORD = #{password}
+    WHERE mobile = #{phone} AND REGION_CODE = #{region}
+  </update>
+
+  <update id="updatePasswordByEmail">
+    UPDATE E_EMPLOYER SET PASSWORD = #{password}
+    WHERE email = #{email}
+  </update>
+
+  <resultMap id="employerPassportMapper" type="we.security.passport.Passport">
+    <result column="LOGO" property="attributes.logo"/>
+    <result column="COMPANY" property="attributes.company"/>
+    <result column="LANGUAGE" property="attributes.language"/>
+  </resultMap>
+</mapper>

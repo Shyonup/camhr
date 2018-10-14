@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.user.mapper.SkillMapper">
+
+  <delete id="deleteSkill">
+    delete from U_CV_SKILL where id = #{id}
+  </delete>
+
+  <insert id="addSkill" useGeneratedKeys="false">
+    <selectKey resultType="java.lang.Integer" order="BEFORE" keyProperty="id" keyColumn="ID">
+      SELECT SEQ_U_CV_SKILL.nextval AS ID from DUAL
+    </selectKey>
+    insert into U_CV_SKILL(ID,CV_ID,name ,years )
+    values (#{id},#{resumeId},#{name},#{years})
+  </insert>
+
+  <update id="updateSkill">
+    update U_CV_SKILL set cv_id = #{resumeId},name = #{name},years = #{years}
+    where id =#{id}
+  </update>
+
+  <select id="getSkillsByResumeId" parameterType="java.lang.Long" resultMap="skillMapper">
+    select * from U_CV_SKILL where CV_ID = #{resumeId}
+  </select>
+
+  <resultMap id="skillMapper" type="com.camhr.resume.entity.Skill">
+    <result column="CV_ID" property="resumeId"/>
+  </resultMap>
+</mapper>

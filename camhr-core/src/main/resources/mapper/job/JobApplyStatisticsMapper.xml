@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.job.mapper.JobApplyStatisticsMapper">
+
+  <select id="getJobApplyStatusStatisticsByJobIds"
+    resultType="com.camhr.job.entity.statistics.JobApplyStatusStatistics">
+    SELECT
+      ( <include refid="countWaitToCommunicate"/> ) AS "waitToCommunicate",
+      ( <include refid="countCandidates"/> ) AS "candidates",
+      ( <include refid="countWaitToInterview"/> ) AS "waitToInterview",
+      E_JOB.id AS "jobId"
+    FROM E_JOB
+    WHERE id IN
+    <foreach collection="jobIds" item="item" index="index" open="(" separator="," close=")">
+      #{item}
+    </foreach>
+  </select>
+
+  <!-- 统计 公司收到了简历，却又没处理的 数据 -->
+  <sql id="countCandidates">
+    SELECT COUNT(1)
+    FROM U_JOB_APPLY
+    WHERE U_JOB_APPLY.job_id = E_JOB.id
+    AND status IN (
+      ${@com.camhr.job.constants.JobApplyStatus@APPLIED.value()},
+      ${@com.camhr.job.constants.JobApplyStatus@VIEWED.value()}
+    )
+    <include refid="jobApplyNotDeleteFilter"/>
+  </sql>
+
+  <!-- 统计 邀请了面试，但未面试 的数据 -->
+  <sql id="countWaitToInterview">
+    SELECT COUNT(1)
+    FROM U_JOB_APPLY
+    WHERE U_JOB_APPLY.job_id = E_JOB.id
+    AND status IN (
+      ${@com.camhr.job.constants.JobApplyStatus@INVITED.value()},
+      ${@com.camhr.job.constants.JobApplyStatus@AGREED_INTERVIEW.value()}
+    )
+    <![CDATA[ AND INTERVIEW_STATUS <> ${@com.camhr.job.constants.InterviewStatus@VIEWED.value()} ]]>
+    <include refid="jobApplyNotDeleteFilter"/>
+  </sql>
+
+  <!-- 统计 待沟通 状态的数据 -->
+  <sql id="countWaitToCommunicate">
+    SELECT COUNT(1)
+    FROM U_JOB_APPLY
+    WHERE U_JOB_APPLY.job_id = E_JOB.id
+    AND status = ${@com.camhr.job.constants.JobApplyStatus@WAIT_TO_COMMUNICATE.value()}
+    <include refid="jobApplyNotDeleteFilter"/>
+  </sql>
+
+  <!-- 职位 - 简历 的申请数据，不能被企业 或 用户删除了 -->
+  <sql id="jobApplyNotDeleteFilter">
+    <!-- 0表示boolean的false -->
+    AND U_JOB_APPLY.userdelete = 0
+    AND U_JOB_APPLY.employerdelete = 0
+  </sql>
+</mapper>

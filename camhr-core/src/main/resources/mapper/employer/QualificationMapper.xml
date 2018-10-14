@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.user.mapper.QualificationMapper">
+
+  <delete id="deleteQualification">
+    delete from U_CV_QUALIFICATION where id = #{id}
+  </delete>
+
+  <insert id="addQualification" useGeneratedKeys="false">
+    <selectKey resultType="java.lang.Integer" order="BEFORE" keyProperty="id" keyColumn="ID">
+      SELECT SEQ_U_CV_QUALIFICATION.nextval AS ID from DUAL
+    </selectKey>
+    insert into U_CV_QUALIFICATION(ID,CV_ID,name ,issued,obtained,photo)
+    values (#{id},#{resumeId},#{name},#{issued},#{obtained},#{photo, jdbcType=VARCHAR})
+  </insert>
+
+  <select id="getQualificationByResumeId" parameterType="java.lang.Long"
+    resultMap="qualificationMapper">
+    select * from U_CV_QUALIFICATION  where CV_ID = #{resumeId}
+  </select>
+
+  <update id="updateQualification">
+    update U_CV_QUALIFICATION
+    set CV_ID = #{resumeId},
+    name = #{name},issued = #{issued},obtained = #{obtained},photo =  #{photo, jdbcType=VARCHAR}
+    where id = #{id}
+  </update>
+
+  <resultMap id="qualificationMapper" type="com.camhr.resume.entity.Qualification">
+    <result column="CV_ID" property="resumeId"/>
+  </resultMap>
+</mapper>

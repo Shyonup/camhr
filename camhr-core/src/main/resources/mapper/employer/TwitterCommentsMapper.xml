@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.user.twitter.mapper.TwitterCommentsMapper">
+
+  <insert id="addTwitterComment">
+    <selectKey resultType="java.lang.Integer" order="BEFORE" keyProperty="id" keyColumn="ID">
+      SELECT SEQ_U_TWITTER_COMMENTS.nextval AS ID FROM DUAL
+    </selectKey>
+    INSERT INTO U_TWITTER_COMMENTS(id, USER_ID,TWITTER_ID, CONTENT, ANONYMOUS)
+    VALUES(#{id},#{userId},#{twitterId},#{content} ,
+    #{anonymous})
+  </insert>
+
+  <update id="removeTwitterComment">
+    UPDATE U_TWITTER_COMMENTS SET
+    status = ${@com.camhr.user.twitter.constants.TwitterCommentsStatus@DELETED.value()}
+    WHERE id = #{twitterCommentId} AND user_id = #{userId}
+  </update>
+
+  <update id="updateTwitterComment">
+    UPDATE U_TWITTER_COMMENTS
+    SET content = #{content},
+    anonymous = #{anonymous},
+    update_at = #{updateAt}
+    WHERE id = #{id} AND user_id = #{userId}
+  </update>
+
+  <select id="queryTwitteerCommentList" resultType="com.camhr.user.twitter.entity.TwitterComments">
+    <include refid="pageQueryHeader"/>
+    SELECT *
+    FROM U_TWITTER_COMMENTS comments
+    LEFT JOIN U_SEEKER seeker ON comments.user_id = seeker.id
+    ORDER BY create_at ASC
+    <include refid="pageQueryFooter"/>
+  </select>
+
+  <select id="countTwitterCommentList" resultType="java.lang.Long">
+    SELECT
+    COUNT(1)
+    FROM U_TWITTER_COMMENTS comments
+    LEFT JOIN U_SEEKER seeker ON comments.user_id = seeker.id
+  </select>
+
+  <sql id="pageQueryHeader">
+    SELECT * FROM ( SELECT A.*, ROWNUM RN FROM (
+  </sql>
+
+  <sql id="pageQueryFooter">
+    <![CDATA[
+     ) A WHERE ROWNUM <= (#{offset} + #{limit}) ) WHERE RN >  #{offset}
+    ]]>
+  </sql>
+
+</mapper>

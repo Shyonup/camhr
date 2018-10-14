@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.user.mapper.UserResumeMapper">
+  <insert id="addUserResume">
+    <selectKey resultType="java.lang.Integer" order="BEFORE" keyProperty="resumeId"
+      keyColumn="ID">
+      SELECT SEQ_U_CV.nextval AS ID from DUAL
+    </selectKey>
+    insert into U_CV(id, NAME,SEEKER_ID,CREATETIME)
+    values(#{resumeId},#{name},#{seekerId},#{createTime})
+  </insert>
+
+  <update id="updateResumeAttributes">
+    update U_CV set
+        name = #{name},
+        description = #{description},
+        hobby = #{hobby},
+        training = #{training},
+        completeness = #{completeness},
+        updatetime = #{updateTime}
+    where id=#{resumeId}
+  </update>
+
+  <select id="findResumesBySeekerId" parameterType="java.lang.Long" resultMap="resumeMapper">
+    select * from U_CV where SEEKER_ID  = #{seekerId} ORDER BY CREATETIME DESC
+  </select>
+
+  <delete id="deleteResumeById">
+    delete from U_CV where id = #{resumeId}
+  </delete>
+
+  <update id="updateCareerProfile">
+    UPDATE U_CV
+    SET  QUALIFICATION_ID = #{qualificationId},
+    CAREER_EXPERIENCE = #{careerExperience},
+    CAREER_POSITION = #{careerPosition},
+    CAREER_CATEGORY_ID = #{careerCategory},
+    CAREER_INDUSTRY_ID = #{careerIndustry},
+    CAREER_LEVEL = #{careerLevel},
+    CAREER_SALARY = #{salary},
+    UPDATETIME = #{updateTime, jdbcType=DATE}
+    WHERE ID = #{resumeId}
+  </update>
+
+  <select id="getResumeById" resultMap="resumeMapper">
+    select   *  from U_CV where ID = #{resumeId}
+  </select>
+
+  <update id="updateJobIntention">
+    update U_CV
+    set REQ_JOBTITLE = #{reqJobTitle},REQ_JOBTERM_ID = #{reqJobtermId},
+    REQ_SALARY_ID = #{reqSalaryId}
+    where id = #{resumeId}
+  </update>
+
+
+  <resultMap id="resumeMapper" type="com.camhr.resume.entity.Resume">
+    <result column="id" property="resumeId"/>
+    <result column="id" property="careerProfile.resumeId"/>
+    <result column="UPDATETIME" property="updateTime"/>
+    <result column="QUALIFICATION_ID" property="careerProfile.qualificationId"/>
+    <result column="CAREER_EXPERIENCE" property="careerProfile.careerExperience"/>
+    <result column="CAREER_POSITION" property="careerProfile.careerPosition"/>
+    <result column="CAREER_CATEGORY_ID" property="careerProfile.careerCategory"/>
+    <result column="CAREER_INDUSTRY_ID" property="careerProfile.careerIndustry"/>
+    <result column="CAREER_LEVEL" property="careerProfile.careerLevel"/>
+    <result column="CAREER_SALARY" property="careerProfile.salary"/>
+    <result column="REQ_JOBTITLE" property="reqJobTitle"/>
+    <result column="REQ_JOBTERM_ID" property="reqJobtermId"/>
+  </resultMap>
+</mapper>

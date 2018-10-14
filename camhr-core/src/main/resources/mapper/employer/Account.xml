@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.employer.account.mapper.AccountMapper">
+
+  <insert id="addAccount">
+    INSERT INTO E_ACCOUNT (
+      EMPLOYER_ID,
+      AMOUNT
+    ) VALUES (
+      #{employerId},
+      #{amount}
+    )
+  </insert>
+  <insert id="addAccountTrade">
+    <selectKey resultType="java.lang.Integer" order="BEFORE" keyProperty="id"
+      keyColumn="ID">
+      SELECT SEQ_E_ACCOUNT_TR.nextval AS ID from DUAL
+    </selectKey>
+    INSERT INTO E_ACCOUNT_TR (
+      id,
+      employer_id,
+      type_id,
+      amount,
+      balance,
+      billno,
+      description,
+      cdate,
+      iscancel,
+      discount,
+      cardno
+    ) VALUES (
+      #{id},
+      #{employerId},
+      #{type},
+      #{amount},
+      #{balance},
+      #{billno},
+      #{description},
+      #{cdate},
+      #{iscancel},
+      #{discount},
+      #{cardno, jdbcType=VARCHAR}
+    )
+  </insert>
+  <update id="changeBalance">
+    update e_account set amount = amount + #{amount} where employer_id = #{employerId}
+  </update>
+  <select id="queryTrade" resultMap="accountTradeMap">
+    <include refid="pageQueryHeader"/>
+    SELECT *
+    FROM E_ACCOUNT_TR
+    WHERE 1 = 1
+    <include refid="tradeQueryBuilder"/>
+    <include refid="pageQueryFooter"/>
+  </select>
+  <select id="countTrade" resultType="java.lang.Long">
+    SELECT COUNT(1)
+    FROM E_ACCOUNT_TR
+    WHERE 1 = 1
+    <include refid="tradeQueryBuilder"/>
+  </select>
+  <select id="getAccount" resultType="com.camhr.employer.account.entity.Account">
+    select * from E_ACCOUNT where employer_id = #{employerId}
+  </select>
+
+  <sql id="tradeQueryBuilder">
+    AND employer_id = #{employerId}
+    <if test="!types.isEmpty()">
+      AND type_id IN
+      <foreach collection="types" item="item" index="index" open="(" separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+    <if test="startTime > 0">
+      <![CDATA[ AND cdate > (to_date('1970-01-0100:00:00','yyyy-mm-dd hh24:mi:ss') + #{startTime}/24/60/60) ]]>
+    </if>
+    <if test="endTime > 0">
+      <![CDATA[ AND cdate < (to_date('1970-01-0100:00:00','yyyy-mm-dd hh24:mi:ss') + #{endTime}/24/60/60) ]]>
+    </if>
+  </sql>
+
+  <sql id="pageQueryHeader">
+    SELECT * FROM ( SELECT A.*, ROWNUM RN FROM (
+  </sql>
+
+  <sql id="pageQueryFooter">
+    <![CDATA[ ) A WHERE ROWNUM <= (#{offset} + #{limit}) ) WHERE RN >  #{offset} ]]>
+  </sql>
+
+  <resultMap id="accountTradeMap" type="com.camhr.employer.account.entity.AccountTrade">
+    <result column="TYPE_ID" property="type"/>
+  </resultMap>
+</mapper>

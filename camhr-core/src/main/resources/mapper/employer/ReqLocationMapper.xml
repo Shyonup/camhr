@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.user.mapper.ReqLocationMapper">
+
+  <insert id="addReqLocation" useGeneratedKeys="false">
+    insert into U_CV_REQ_LOCATION(ID,CV_ID,LOCATION_ID)
+    SELECT SEQ_U_CV_REQ_LOCATION.nextval, A.* FROM (
+    <foreach collection="reqLocations" item="item" separator="UNION ALL">
+      SELECT
+      #{item.resumeId, jdbcType=NUMERIC},
+      #{item.locationId, jdbcType=NUMERIC}
+      FROM DUAL
+    </foreach>
+    ) A
+  </insert>
+
+  <delete id="deleteReqLocationByResumeId">
+    delete from U_CV_REQ_LOCATION where CV_ID = #{resumeId}
+  </delete>
+
+  <select id="getReqLocationIds" parameterType="java.lang.Long" resultType="java.lang.Integer">
+    select LOCATION_ID from U_CV_REQ_LOCATION where CV_ID = #{resumeId}
+  </select>
+</mapper>

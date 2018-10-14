@@ -1,0 +1,2 @@
+-- 2018-09-17
+ALTER TABLE E_JOB_LOCATION ADD (address varchar2(256));

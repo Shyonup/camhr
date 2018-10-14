@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.employer.wallet.mapper.PaymentMapper">
+
+  <insert id="addPayment">
+    INSERT INTO E_PAYMENT (
+      payment_id,
+      order_id,
+      name,
+      status,
+      payer_type,
+      payment_type,
+      payment_method,
+      currency,
+      create_at,
+      pay_at,
+      done_at,
+      amount,
+      payer_id,
+      failure_reason,
+      memo,
+      attributes
+    ) VALUES (
+      #{paymentId},
+      #{orderId},
+      #{name},
+      #{status},
+      #{payerType},
+      #{paymentType},
+      #{paymentMethod},
+      #{currency},
+      #{createAt},
+      #{payAt},
+      #{doneAt},
+      #{amount},
+      #{payerId},
+      #{failureReason},
+      #{memo},
+      #{attributes,typeHandler=json}
+    )
+  </insert>
+  <insert id="addPaymentHistory">
+    INSERT INTO E_PAYMENT_HISTORY (
+      payment_id,
+      payment_method,
+      status,
+      create_at,
+      result,
+      failure_reason
+    ) VALUES (
+      #{paymentId},
+      #{paymentMethod},
+      #{status},
+      #{createAt},
+      #{result,typeHandler=json},
+      #{failureReason}
+    )
+  </insert>
+  <update id="updatePaymentStatus">
+    update E_PAYMENT set STATUS = #{status} where payment_id = #{paymentId}
+  </update>
+
+</mapper>

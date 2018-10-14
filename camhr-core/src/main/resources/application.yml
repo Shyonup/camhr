@@ -1,0 +1,68 @@
+version: v1.0.0
+spring:
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    url: jdbc:oracle:thin:@218.28.139.122:1521:orcl
+    username: camhr
+    password: mosai520
+  messages:
+    always-use-message-format: false
+    basename: i18n/messages
+    encoding: utf-8
+    fallback-to-system-locale: true
+  #   cache-duration:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 2MB
+      max-request-size: 3MB
+    encoding:
+      enabled: true
+      charset: UTF-8
+      force: true
+  mail:
+    host: smtp.139.com
+    port: 25
+    username: hohotest@139.com
+    password: test
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+logging:
+  level:
+    org.mybatis.spring: debug
+    org.apache.ibatis: debug
+security:
+  permit-all-endpoint:
+  - /v1.0.0/*
+  - /v1.0.0/application/**
+  - /v1.0.0/users/authorize
+  - /v1.0.0/users/register
+  - /v1.0.0/users/register/mobile
+  - /v1.0.0/employers/authorize
+  - /v1.0.0/employers/register
+  - /v1.0.0/users/sms/**
+  - /v1.0.0/findpassword/**
+oss:
+  local:
+    http: http://218.28.139.122:9997
+    path: /root/project/java/files
+    name-format: hash
+
+payment:
+  mpay:
+    mercId: 8888880000019022
+    signKey: tqStlzcROEoLaTnAzWMFiogABdhVfxNB
+    sandbox: false
+    endpoint: http://103.242.56.40:9001
+    notifyUrl: http://staging.iask.in:38469/v1.0.0/employers/wallets/recharges/callback
+#    notifyUrl: http://staging.iask.in:38469/callback/payment/mPayTemplate/notify
+
+camhr:
+  sms:
+    aliyun-access-key-id: LTAI5Fq4FuFsghF4
+    aliyun-access-key-secret: 7KuTE7x1EiXGTxWCkF5bY10dZk3LSt
+    aliyun-sms-sign-name: 能智电力
+    aliyun-sms-template-code: SMS_142950469
+  im:
+    appKey: a1e64dc5d89dbd83f4fdfb17d2bf0062
+    appSecret: e2aa165a2edc

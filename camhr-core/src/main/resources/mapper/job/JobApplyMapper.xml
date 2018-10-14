@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.camhr.job.mapper.JobApplyMapper">
+
+  <insert id="addJobApply">
+    <selectKey resultType="java.lang.Long" order="BEFORE" keyProperty="id">
+      SELECT SEQ_U_JOB_APPLY.nextval AS ID from DUAL
+    </selectKey>
+    INSERT INTO U_JOB_APPLY (
+    id,
+    seeker_id,
+    employer_id,
+    apply_type,
+    job_id,
+    letter_id,
+    cv_id,
+    expdate,
+    applydate
+    ) VALUES (
+    #{id},
+    #{seekerId, jdbcType=NUMERIC},
+    #{employerId, jdbcType=NUMERIC},
+    #{applyType, jdbcType=NUMERIC},
+    #{jobId, jdbcType=NUMERIC},
+    #{letterId, jdbcType=NUMERIC},
+    #{cvId, jdbcType=NUMERIC},
+    #{expdate, jdbcType=DATE},
+    #{applydate, jdbcType=DATE}
+    )
+  </insert>
+
+  <insert id="markJobAsCommunicated">
+    INSERT INTO U_JOB_COMMUNICATED (SEEKER_ID, JOB_ID) VALUES (#{seekerId}, #{jobId})
+  </insert>
+
+  <update id="repeatedlyApplyJob">
+    UPDATE U_JOB_APPLY
+    SET
+    letter_id = #{letterId, jdbcType=NUMERIC},
+    applydate = #{applydate, jdbcType=DATE},
+    expdate = #{expdate, jdbcType=DATE},
+    userdelete = 0 <!-- boolean值，oracle不支持boolean只能写死0或1 -->
+    WHERE id = #{id}
+  </update>
+
+  <select id="queryJobApplyReplies" resultType="com.camhr.job.entity.Job">
+    <include refid="pageQueryHeader"/>
+    SELECT
+    <include refid="job_all_columns"/>
+    FROM U_JOB_APPLY t_job_apply
+    LEFT JOIN E_JOB t_job ON t_job_apply.job_id = t_job.id
+    WHERE 1 = 1
+    <include refid="jobApplyQueryBuilder"/>
+    ORDER BY t_job_apply.id DESC
+    <include refid="pageQueryFooter"/>
+  </select>
+
+  <select id="countJobApplyReplies" resultType="java.lang.Long">
+    SELECT
+    COUNT(1)
+    FROM U_JOB_APPLY t_job_apply
+    LEFT JOIN E_JOB t_job ON t_job_apply.job_id = t_job.id
+    WHERE 1 = 1
+    <include refid="jobApplyQueryBuilder"/>
+  </select>
+
+  <select id="queryUserJobApplyList" resultType="com.camhr.job.entity.UserJobApply">
+    <include refid="pageQueryHeader"/>
+    SELECT
+    <include refid="userJobApplyFields"/>
+    FROM U_JOB_APPLY t_job_apply
+    <include refid="queryUserJobApplyJoinOnTable"/>
+    WHERE 1 = 1
+    <include refid="userJobApplyQueryBuilder"/>
+    ORDER BY t_job_apply.id DESC
+    <include refid="pageQueryFooter"/>
+  </select>
+
+  <select id="countUserJobApplyList" resultType="java.lang.Long">
+    SELECT
+    COUNT(1)
+    FROM U_JOB_APPLY t_job_apply
+    <include refid="queryUserJobApplyJoinOnTable"/>
+    WHERE 1 = 1
+    <include refid="userJobApplyQueryBuilder"/>
+  </select>
+
+  <select id="getJobApplyId" resultType="java.lang.Long">
+    SELECT id FROM U_JOB_APPLY
+    WHERE seeker_id = #{seekerId}
+    AND apply_type = ${@com.camhr.job.constants.JobApplyType@USER_APPLY.value()}
+    AND job_id = #{jobId}
+    AND cv_id = #{cvId}
+  </select>
+
+  <select id="getUserJobApply" resultType="com.camhr.job.entity.UserJobApply">
+    SELECT
+    <include refid="userJobApplyFields"/>
+    FROM U_JOB_APPLY t_job_apply
+    <include refid="queryUserJobApplyJoinOnTable"/>
+    WHERE t_job_apply.id = #{jobApplyId}
+  </select>
+
+  <select id="existsJobCommunicated" resultType="java.lang.Boolean">
+    SELECT COUNT(1) FROM U_JOB_COMMUNICATED WHERE SEEKER_ID = #{seekerId} AND JOB_ID = #{jobId}
+  </select>
+
+  <select id="queryEmployerJobApplyList" resultType="com.camhr.job.entity.EmployerJobApply">
+    <include refid="pageQueryHeader"/>
+    SELECT
+    <include refid="employerJobApplyFields"/>
+    FROM U_JOB_APPLY t_job_apply
+    <include refid="queryEmployerJobApplyJoinOnTable"/>
+    WHERE 1 = 1
+    <include refid="employerJobApplyQueryBuilder"/>
+    ORDER BY t_job_apply.status asc
+    <include refid="pageQueryFooter"/>
+  </select>
+
+  <select id="countEmployerJobApplyList" resultType="java.lang.Long">
+    SELECT
+    COUNT(1)
+    FROM U_JOB_APPLY t_job_apply
+    <include refid="queryEmployerJobApplyJoinOnTable"/>
+    WHERE 1 = 1
+    <include refid="employerJobApplyQueryBuilder"/>
+  </select>
+
+  <select id="getApplicationStatusStatistics"
+    parameterType="com.camhr.employer.builder.ResumeQueryBuilder"
+    resultType="com.camhr.employer.entity.EmployerJobApplyStatistics">
+    select
+    sum(case when t_job_apply.STATUS =
+    ${@com.camhr.job.constants.JobApplyStatus@WAIT_TO_COMMUNICATE.value()}
+    then 1 else 0 end) as comunicationTotal,
+    sum(case when t_job_apply.STATUS = ${@com.camhr.job.constants.JobApplyStatus@APPLIED.value()}
+    or t_job_apply.STATUS = ${@com.camhr.job.constants.JobApplyStatus@VIEWED.value()}
+    then 1 else 0 end) as chosenTotal,
+    sum(case when t_job_apply.STATUS = ${@com.camhr.job.constants.JobApplyStatus@INVITED.value()}
+    or t_job_apply.STATUS =${@com.camhr.job.constants.JobApplyStatus@AGREED_INTERVIEW.value()}
+    then 1 else 0 end) as invitedTotal,
+    sum(case when t_job_apply.STATUS =
+    ${@com.camhr.job.constants.JobApplyStatus@INCOMPATIBLE.value()}
+    then 1 else 0 end) as incompatibleTotal
+    from U_JOB_APPLY t_job_apply
+    <include refid="queryEmployerJobApplyJoinOnTable"/>
+    where 1 = 1
+    <include refid="employerJobApplyQueryBuilder"/>
+  </select>
+
+  <update id="updateJobApplyStatus">
+    update U_JOB_APPLY  set
+    STATUS = #{status}
+    where id = #{jobApplyId}
+    AND (seeker_id = #{userId} OR employer_id = #{userId})
+  </update>
+
+  <update id="batchUpdateStatus">
+    update U_JOB_APPLY set
+    STATUS = #{status}
+    where id in
+    <foreach collection="jobApplyIds" item="jobApplyId" open="(" separator="," close=")">
+      #{jobApplyId}
+    </foreach>
+    AND (seeker_id = #{userId} OR employer_id = #{userId})
+  </update>
+
+
+  <update id="updateJobApplyInterview">
+    update U_JOB_APPLY
+    set ACTION_TIME = #{actionTime,jdbcType=DATE},
+    ACTION_ADDRESS = #{actionAddress},
+    ACTION_CONACT = #{actionConact},
+    ACTION_MOBILE = #{actionMobile}
+    where id = #{id} and employer_id = #{employerId}
+  </update>
+
+  <select id="viewResumePower" resultType="com.camhr.job.entity.JobApply">
+    select id, status, job_id, apply_type
+    from U_JOB_APPLY
+    where id = #{jobApplyId} and employer_id= #{employerId} and cv_id= #{resumeId}
+    and expdate>trunc(sysdate) and employerdelete=0
+  </select>
+
+  <update id="updateJobApplyInterviewStatus">
+    UPDATE U_JOB_APPLY
+    SET interview_status = #{interviewStatus}
+    WHERE ID = #{jobApplyId}
+    AND employer_id = #{employerId}
+  </update>
+
+  <sql id="userJobApplyFields">
+    t_job_apply.*,
+
+    t_employer.address AS companyAddress,
+    t_employer.company AS company,
+    t_employer.logo AS employerLogo,
+
+    t_seeker.NAME AS "intervieweeName",
+    t_seeker.SEX_ID AS "sexId",
+    t_seeker.BIRTHDAY AS "birthday",
+    t_seeker.MOBILE AS "phoneNumber",
+
+    t_job.category_id AS "categoryId",
+    t_job.title AS "jobTitle",
+    t_job.salary_id AS "salaryId"
+  </sql>
+
+  <sql id="queryUserJobApplyJoinOnTable">
+    LEFT JOIN E_EMPLOYER t_employer ON t_job_apply.employer_id = t_employer.id
+    LEFT JOIN E_JOB t_job ON t_job_apply.job_id = t_job.id
+    LEFT JOIN U_SEEKER t_seeker ON t_job_apply.seeker_id = t_seeker.id
+  </sql>
+
+  <sql id="jobApplyQueryBuilder">
+    <if test="seekerId > -1">
+      AND t_job_apply.seeker_id = #{seekerId}
+    </if>
+    <if test="employerId > -1">
+      AND t_job_apply.employer_id = #{employerId}
+    </if>
+    <if test="jobApplyType != null">
+      AND t_job_apply.apply_type = #{jobApplyType}
+    </if>
+    <if test="userDelete != null">
+      AND t_job_apply.userdelete = #{userDelete}
+    </if>
+    <if test="employerDelete != null">
+      AND t_job_apply.employerdelete = #{employerDelete}
+    </if>
+    <if test="!status.isEmpty()">
+      AND t_job_apply.status IN
+      <foreach collection="status" item="item" index="index" open="(" separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+    <if test="interviewStatus > -2">
+      AND t_job_apply.interview_status = #{interviewStatus}
+    </if>
+    <!-- 面试时间 -->
+    <if test="actionStartTime != null">
+      <![CDATA[ AND t_job_apply.ACTION_TIME >= #{actionStartTime} ]]>
+    </if>
+    <if test="actionEndTime != null">
+      <![CDATA[ AND t_job_apply.ACTION_TIME <= #{actionEndTime} ]]>
+    </if>
+    <!-- 记录创建时间，相当于createAt -->
+    <if test="applyStartTime != null">
+      <![CDATA[ AND t_job_apply.APPLYDATE >= #{applyStartTime} ]]>
+    </if>
+    <if test="applyEndTime != null">
+      <![CDATA[ AND t_job_apply.APPLYDATE <= #{applyEndTime} ]]>
+    </if>
+
+  </sql>
+
+  <sql id="userJobApplyQueryBuilder">
+    <include refid="jobApplyQueryBuilder"/>
+
+    <if test="intervieweeName != null">
+      AND LOWER(t_seeker.NAME) LIKE '%'||#{intervieweeName}||'%'
+    </if>
+    <if test="mobilePhone != null">
+      AND t_seeker.MOBILE LIKE '%'||#{mobilePhone}||'%'
+    </if>
+    <if test="company != null">
+      AND LOWER(t_employer.company) LIKE '%'||#{company}||'%'
+    </if>
+  </sql>
+
+  <sql id="employerJobApplyQueryBuilder">
+    <include refid="jobApplyQueryBuilder"/>
+    <if test="locationId > 0">
+      AND t_location.LOCATION_ID = #{locationId}
+    </if>
+    <if test="fromBirthday != null">
+      <![CDATA[ AND  t_seeker.birthday >= #{fromBirthday} ]]>
+    </if>
+    <if test="toBirthday != null">
+      <![CDATA[ AND t_seeker.birthday <= #{toBirthday}  ]]>
+    </if>
+    <if test="jobTitle != null and jobTitle != ''">
+      AND LOWER(t_job.title) LIKE '%' || #{jobTitle} || '%'
+    </if>
+    <if test="jobId != null and jobId != ''">
+      AND t_job.id = #{jobId}
+    </if>
+  </sql>
+
+  <sql id="queryEmployerJobApplyJoinOnTable">
+    LEFT JOIN E_JOB t_job ON t_job_apply.job_id = t_job.id
+    LEFT JOIN U_SEEKER t_seeker ON t_job_apply.seeker_id = t_seeker.id
+    LEFT JOIN U_CV t_cv ON t_job_apply.CV_ID = t_cv.ID
+    <if test="locationId > 0">
+      LEFT JOIN U_CV_REQ_LOCATION t_location ON t_job_apply.CV_ID = t_location.CV_ID
+    </if>
+  </sql>
+
+  <sql id="employerJobApplyFields">
+    t_job_apply.*,
+
+    t_seeker.NAME AS "intervieweeName",
+    t_seeker.SEX_ID AS "sexId",
+    t_seeker.BIRTHDAY AS "birthday",
+    t_seeker.FIRSTNAME AS firstName,
+    t_seeker.LASTNAME AS lastName,
+
+     t_cv.QUALIFICATION_ID AS qualificationId,
+     t_cv.CAREER_EXPERIENCE AS careerExperience,
+
+    t_job.title AS "jobTitle"
+  </sql>
+  <sql id="pageQueryHeader">
+    SELECT * FROM ( SELECT A.*, ROWNUM RN FROM (
+  </sql>
+
+  <sql id="pageQueryFooter">
+    <![CDATA[
+
+     ) A WHERE ROWNUM <= (#{offset} + #{limit}) ) WHERE RN >  #{offset}
+
+    ]]>
+  </sql>
+
+  <sql id="job_all_columns">
+    t_job.id,
+    t_job.status,
+    t_job.ispublish,
+    t_job.pubdate,
+    t_job.expdate,
+    t_job.employer_id,
+    t_job.contact_id,
+    t_job.title,
+    t_job.hirelings,
+    t_job.industrial_id,
+    t_job.category_id,
+    t_job.term_id,
+    t_job.job_level_id,
+    t_job.salary_id,
+    t_job.workyears,
+    t_job.qualification_id,
+    t_job.others_qualification,
+    t_job.major,
+    t_job.sex,
+    t_job.matrial,
+    t_job.age_from,
+    t_job.age_to,
+    t_job.address,
+    t_job.weburl,
+    t_job.requirement,
+    t_job.isurgent,
+    t_job.updatetime,
+    t_job.createdate,
+    t_job.new_apply,
+    t_job.total_apply,
+    t_job.search_apply,
+    t_job.seeker_hits,
+    t_job.language,
+    t_job.sysclose,
+    t_job.hot_expdate,
+    t_job.close_date,
+    t_job.pubtype,
+    t_job.online_apply,
+    t_job.show_email,
+    t_job.auto_renew
+  </sql>
+</mapper>
